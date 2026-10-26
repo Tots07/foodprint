@@ -21,3 +21,6 @@ Dans la console Firebase > Firestore > Règles, autorisez par exemple :
 
 Attention : le code PIN est haché (SHA-256) côté navigateur, mais avec ces règles n'importe qui connaissant
 la configuration peut lire la base. Pour une vraie sécurité, utilisez Firebase Auth.
+
+## Installation sur mobile (PWA)
+L'application a son propre `manifest.json` (id `foodprint-app`, scope `./`) et un `sw.js`, ce qui la distingue des autres applications hébergées sur le même domaine `github.io`.
