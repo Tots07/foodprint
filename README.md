@@ -24,3 +24,6 @@ la configuration peut lire la base. Pour une vraie sécurité, utilisez Firebase
 
 ## Installation sur mobile (PWA)
 L'application a son propre `manifest.json` (id `foodprint-app`, scope `./`) et un `sw.js`, ce qui la distingue des autres applications hébergées sur le même domaine `github.io`.
+
+## Sessions et code PIN
+Un visiteur qui choisit une session la voit en lecture seule. Pour modifier, il saisit le code PIN (bouton Déverrouiller). Cette protection est côté application : tant que les règles Firestore sont ouvertes, elle ne bloque pas un accès direct à la base.
