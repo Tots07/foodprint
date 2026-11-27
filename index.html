@@ -80,9 +80,12 @@ function fire(r){const t=r.t=='w'?'💧 Pensez à boire':'🍽️ Pensez à note
  if(!('Notification' in window)||Notification.permission!='granted')return;
  const f=()=>{try{new Notification(t,o)}catch(e){}};
  if(navigator.serviceWorker&&navigator.serviceWorker.ready)navigator.serviceWorker.ready.then(g=>g.showNotification(t,o)).catch(f);else f()}
+const isNative=()=>!!(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform());
+const LN=()=>Capacitor.Plugins.LocalNotifications;
+async function nativeSync(){try{const s=cs(),ln=LN(),pe=await ln.getPending();if(pe.notifications.length)await ln.cancel({notifications:pe.notifications});if(!s||!s.notifs||RO())return;const l=s.notifs.filter(r=>r.on&&r.h).map((r,i)=>{const[h,m]=r.h.split(':').map(Number);return{id:i+1,title:r.t=='w'?'💧 Pensez à boire':'🍽️ Pensez à noter votre repas',body:r.t=='w'?'Ajoutez votre dose d’eau':'Enregistrez votre repas dans FoodPrint',schedule:{on:{hour:h,minute:m},allowWhileIdle:true}}});if(l.length)await ln.schedule({notifications:l})}catch(e){}}
 let NT=null;
 function due(){const s=cs();if(!s||!s.notifs||RO())return;const d=new Date(),k=dk(d),nm=d.getHours()*60+d.getMinutes();s.notifs.forEach(r=>{const[h,m]=(r.h||'').split(':').map(Number),t=h*60+m;if(r.on&&r.last!=k&&nm>=t&&nm-t<=15){r.last=k;fire(r);save()}})}
-function planNotifs(){clearTimeout(NT);const s=cs();if(!s||!s.notifs||RO())return;const d=new Date();let best=null;s.notifs.forEach(r=>{if(!r.on||!r.h)return;const[h,m]=r.h.split(':').map(Number),t=new Date(d.getFullYear(),d.getMonth(),d.getDate(),h,m,0);if(t<=d)t.setDate(t.getDate()+1);if(!best||t<best)best=t});if(best)NT=setTimeout(()=>{due();planNotifs()},Math.min(best-d+500,2147000000))}
+function planNotifs(){clearTimeout(NT);if(isNative()){nativeSync();return}const s=cs();if(!s||!s.notifs||RO())return;const d=new Date();let best=null;s.notifs.forEach(r=>{if(!r.on||!r.h)return;const[h,m]=r.h.split(':').map(Number),t=new Date(d.getFullYear(),d.getMonth(),d.getDate(),h,m,0);if(t<=d)t.setDate(t.getDate()+1);if(!best||t<best)best=t});if(best)NT=setTimeout(()=>{due();planNotifs()},Math.min(best-d+500,2147000000))}
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){due();planNotifs()}});
 function setTab(i){S.tab=i?'d':'t';render()}
 function moveMonth(n){S.month=((S.month||0)+n+12)%12;render()}
@@ -102,14 +105,14 @@ function settings(){if(lock())return;
   const tb=`<div style='display:flex;gap:8px;margin-bottom:8px'>${[['m','Repas'],['n','Notifications']].map(([k,l])=>`<button class='btn ${ST==k?'':'s'}' data-t='${k}'>${l}</button>`).join('')}</div>`;
   let body;
   if(ST=='m')body=`<b>kgCO₂ par repas</b>${M.map((m,i)=>`<label>${m[0]}</label><input id='c${i}' type='number' inputmode='decimal' step='0.1' value='${s.coefs[i]}'>`).join('')}<button class='btn s' id='cp' style='margin-top:12px'>Changer le code PIN</button><div class='bs'><button class='btn s' id='rs'>Valeurs par défaut</button><button class='btn' id='ok'>Enregistrer</button></div>`;
-  else{const p=('Notification' in window)?Notification.permission:'x';
-   body=`<div class='mu' style='margin:6px 0'>${p=='granted'?'✅ Notifications autorisées':p=='denied'?'⛔ Bloquées dans les réglages du navigateur':p=='default'?'Autorisation requise':'Non supporté ici'}</div>${p=='default'?`<button class='btn' id='perm'>Activer les notifications</button>`:''}${n.map(r=>`<div style='display:flex;align-items:center;gap:8px;margin-top:10px'><span style='font-size:22px'>${r.t=='w'?'💧':'🍽️'}</span><input type='time' data-id='${r.id}' value='${r.h}' style='flex:1'><input type='checkbox' data-on='${r.id}' ${r.on?'checked':''} style='width:24px;height:24px;flex:none'><button class='ib' data-del='${r.id}'>✕</button></div>`).join('')}<div class='bs'><button class='btn s' id='am'>+ Repas</button><button class='btn s' id='aw'>+ Eau</button></div><p class='mu' style='font-size:12px'>Les rappels se déclenchent à l’heure choisie quand l’application est ouverte ou active en arrière-plan.</p>`}
+  else{const p=isNative()?'default':('Notification' in window)?Notification.permission:'x';
+   body=`<div class='mu' style='margin:6px 0'>${p=='granted'?'✅ Notifications autorisées':p=='denied'?'⛔ Bloquées dans les réglages du navigateur':p=='default'?(isNative()?'Application Android : rappels natifs':'Autorisation requise'):'Non supporté ici'}</div>${p=='default'?`<button class='btn' id='perm'>Activer les notifications</button>`:''}${n.map(r=>`<div style='display:flex;align-items:center;gap:8px;margin-top:10px'><span style='font-size:22px'>${r.t=='w'?'💧':'🍽️'}</span><input type='time' data-id='${r.id}' value='${r.h}' style='flex:1'><input type='checkbox' data-on='${r.id}' ${r.on?'checked':''} style='width:24px;height:24px;flex:none'><button class='ib' data-del='${r.id}'>✕</button></div>`).join('')}<div class='bs'><button class='btn s' id='am'>+ Repas</button><button class='btn s' id='aw'>+ Eau</button></div><p class='mu' style='font-size:12px'>Les rappels se déclenchent à l’heure choisie quand l’application est ouverte ou active en arrière-plan.</p>`}
   o.innerHTML=`<div class='md'>${tb}${body}<button class='btn s' id='cl' style='margin-top:10px'>Fermer</button></div>`;
   o.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{ST=b.dataset.t;draw()});
   q('#cl').onclick=close;
   if(ST=='m'){q('#ok').onclick=()=>{s.coefs=M.map((_,i)=>{const v=q('#c'+i).value;return v===''?DEF[i]:num(v)});save();close()};q('#rs').onclick=()=>{s.coefs=[...DEF];save();close()};q('#cp').onclick=()=>{ask('Nouveau code PIN',[{l:'Nouveau code (chiffres)',t:'password'}],async([p])=>{if(!/^\d{3,}$/.test(p))return'PIN numérique, 3 chiffres minimum';s.pin=await H(p);save()})}}
   else{
-   if(q('#perm'))q('#perm').onclick=async()=>{try{await Notification.requestPermission()}catch(e){}draw()};
+   if(q('#perm'))q('#perm').onclick=async()=>{try{if(isNative())await LN().requestPermissions();else await Notification.requestPermission()}catch(e){}draw()};
    q('#am').onclick=()=>{n.push({id:'n'+Date.now(),t:'m',h:'12:00',on:true});save();draw()};
    q('#aw').onclick=()=>{n.push({id:'n'+Date.now(),t:'w',h:'10:00',on:true});save();draw()};
    o.querySelectorAll('[data-id]').forEach(i=>i.onchange=()=>{n.find(r=>r.id==i.dataset.id).h=i.value;save()});

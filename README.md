@@ -27,3 +27,9 @@ L'application a son propre `manifest.json` (id `foodprint-app`, scope `./`) et u
 
 ## Sessions et code PIN
 Un visiteur qui choisit une session la voit en lecture seule. Pour modifier, il saisit le code PIN (bouton Déverrouiller). Cette protection est côté application : tant que les règles Firestore sont ouvertes, elle ne bloque pas un accès direct à la base.
+
+## Application Android (APK) via GitHub Actions
+Le workflow `.github/workflows/android.yml` emballe l'application avec Capacitor, signe l'APK et l'envoie aux testeurs via Firebase App Distribution.
+Secrets à créer dans GitHub (Settings > Secrets and variables > Actions) :
+ANDROID_KEYSTORE_B64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD, FIREBASE_ANDROID_APP_ID, FIREBASE_SERVICE_ACCOUNT, FIREBASE_TESTERS.
+L'identifiant de l'application (`com.foodprint.app`) est dans `capacitor.config.json` : à choisir avant la première distribution.

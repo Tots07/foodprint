@@ -1,0 +1,6 @@
+{
+  "appId": "com.foodprint.app",
+  "appName": "FoodPrint",
+  "webDir": "www",
+  "android": { "backgroundColor": "#121813" }
+}
