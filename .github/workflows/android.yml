@@ -1,0 +1,73 @@
+name: Android APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Installer les dépendances
+        run: npm install
+
+      - name: Préparer les fichiers web
+        run: |
+          mkdir -p www
+          cp index.html manifest.json sw.js icon-v2-*.png www/
+
+      - name: Créer le projet Android
+        run: npx cap add android
+
+      - name: Icônes et écran de démarrage (facultatif)
+        continue-on-error: true
+        run: npx --yes @capacitor/assets generate --android --iconBackgroundColor '#121813' --splashBackgroundColor '#121813'
+
+      - name: Permissions et numéro de version
+        run: python3 scripts/patch_android.py ${{ github.run_number }}
+
+      - run: npx cap sync android
+
+      - name: Compiler l'APK
+        working-directory: android
+        run: ./gradlew assembleRelease
+
+      - name: Signer l'APK
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          echo "$KEYSTORE_B64" | base64 -d > release.jks
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          UNSIGNED=$(ls android/app/build/outputs/apk/release/*.apk | head -1)
+          "$BT/zipalign" -p -f 4 "$UNSIGNED" aligned.apk
+          "$BT/apksigner" sign --ks release.jks --ks-key-alias "$KEY_ALIAS" --ks-pass env:KS_PASS --key-pass env:KEY_PASS --out FoodPrint.apk aligned.apk
+          rm release.jks
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FoodPrint-apk
+          path: FoodPrint.apk
+
+      - name: Envoyer aux testeurs (Firebase App Distribution)
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        with:
+          appId: ${{ secrets.FIREBASE_ANDROID_APP_ID }}
+          serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          file: FoodPrint.apk
+          testers: ${{ secrets.FIREBASE_TESTERS }}
+          releaseNotes: "Build ${{ github.run_number }} - ${{ github.event.head_commit.message }}"
