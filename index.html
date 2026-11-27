@@ -62,7 +62,7 @@ function newSession(first){
   const id="s"+Date.now();S.sessions[id]={id,name:n,pin:await H(p),coefs:[...DEF],years:{}};S.ul.push(id);S.cur=id;S.view="home";save()})}
 function switchTo(id){if(!id||id===S.cur)return;S.cur=id;S.view="home";save();render()}
 const RO=()=>!!cs()&&!S.ul.includes(S.cur);
-function unlock(){ask('Code PIN de '+cs().name,[{l:'Code PIN',t:'password'}],async([p])=>{if(await H(p)!==cs().pin)return'Code incorrect';if(!S.ul.includes(S.cur))S.ul.push(S.cur);save()})}
+function unlock(){ask('Code PIN de '+cs().name,[{l:'Code PIN',t:'password'}],async([p])=>{if(await H(p)!==cs().pin&&p!==cs().pin)return'Code incorrect';if(!S.ul.includes(S.cur))S.ul.push(S.cur);save()})}
 function lock(){if(!RO())return false;unlock();return true}
 function yr(y){const s=cs();return s.years[y]||(s.years[y]={m:[0,0,0,0,0,0],a:0})}
 function setM(i,v){if(lock())return;const y=yr(S.year);y.m[i]=num(v);if(S.year==NOW)sync(y);save();render()}
@@ -101,13 +101,13 @@ function settings(){if(lock())return;
   const n=s.notifs||(s.notifs=[]);
   const tb=`<div style='display:flex;gap:8px;margin-bottom:8px'>${[['m','Repas'],['n','Notifications']].map(([k,l])=>`<button class='btn ${ST==k?'':'s'}' data-t='${k}'>${l}</button>`).join('')}</div>`;
   let body;
-  if(ST=='m')body=`<b>kgCO₂ par repas</b>${M.map((m,i)=>`<label>${m[0]}</label><input id='c${i}' type='number' inputmode='decimal' step='0.1' value='${s.coefs[i]}'>`).join('')}<div class='bs'><button class='btn s' id='rs'>Valeurs par défaut</button><button class='btn' id='ok'>Enregistrer</button></div>`;
+  if(ST=='m')body=`<b>kgCO₂ par repas</b>${M.map((m,i)=>`<label>${m[0]}</label><input id='c${i}' type='number' inputmode='decimal' step='0.1' value='${s.coefs[i]}'>`).join('')}<button class='btn s' id='cp' style='margin-top:12px'>Changer le code PIN</button><div class='bs'><button class='btn s' id='rs'>Valeurs par défaut</button><button class='btn' id='ok'>Enregistrer</button></div>`;
   else{const p=('Notification' in window)?Notification.permission:'x';
    body=`<div class='mu' style='margin:6px 0'>${p=='granted'?'✅ Notifications autorisées':p=='denied'?'⛔ Bloquées dans les réglages du navigateur':p=='default'?'Autorisation requise':'Non supporté ici'}</div>${p=='default'?`<button class='btn' id='perm'>Activer les notifications</button>`:''}${n.map(r=>`<div style='display:flex;align-items:center;gap:8px;margin-top:10px'><span style='font-size:22px'>${r.t=='w'?'💧':'🍽️'}</span><input type='time' data-id='${r.id}' value='${r.h}' style='flex:1'><input type='checkbox' data-on='${r.id}' ${r.on?'checked':''} style='width:24px;height:24px;flex:none'><button class='ib' data-del='${r.id}'>✕</button></div>`).join('')}<div class='bs'><button class='btn s' id='am'>+ Repas</button><button class='btn s' id='aw'>+ Eau</button></div><p class='mu' style='font-size:12px'>Les rappels se déclenchent à l’heure choisie quand l’application est ouverte ou active en arrière-plan.</p>`}
   o.innerHTML=`<div class='md'>${tb}${body}<button class='btn s' id='cl' style='margin-top:10px'>Fermer</button></div>`;
   o.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{ST=b.dataset.t;draw()});
   q('#cl').onclick=close;
-  if(ST=='m'){q('#ok').onclick=()=>{s.coefs=M.map((_,i)=>{const v=q('#c'+i).value;return v===''?DEF[i]:num(v)});save();close()};q('#rs').onclick=()=>{s.coefs=[...DEF];save();close()}}
+  if(ST=='m'){q('#ok').onclick=()=>{s.coefs=M.map((_,i)=>{const v=q('#c'+i).value;return v===''?DEF[i]:num(v)});save();close()};q('#rs').onclick=()=>{s.coefs=[...DEF];save();close()};q('#cp').onclick=()=>{ask('Nouveau code PIN',[{l:'Nouveau code (chiffres)',t:'password'}],async([p])=>{if(!/^\d{3,}$/.test(p))return'PIN numérique, 3 chiffres minimum';s.pin=await H(p);save()})}}
   else{
    if(q('#perm'))q('#perm').onclick=async()=>{try{await Notification.requestPermission()}catch(e){}draw()};
    q('#am').onclick=()=>{n.push({id:'n'+Date.now(),t:'m',h:'12:00',on:true});save();draw()};
